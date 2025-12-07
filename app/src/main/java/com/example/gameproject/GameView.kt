@@ -33,64 +33,128 @@ class Maze {
 }
 
 class GameView(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
-
     // --- Переменные состояния игры ---
     private val maze = Maze()
-    private var ballX = maze.startX
-    private var ballY = maze.startY
+
+    // В эти переменные будет храниться ТЕКУЩАЯ МАСШТАБИРОВАННАЯ позиция шарика (в пикселях)
+    private var ballX = 0f
+    private var ballY = 0f
+
+    // Скорость, которую мы получаем из акселерометра (тоже должна быть масштабирована)
     private var velocityX = 0f
     private var velocityY = 0f
+
     private var isFinished = false
 
+    // Факторы масштабирования (сначала 1f, будут рассчитаны в onSizeChanged)
+    private var scaleX: Float = 1f
+    private var scaleY: Float = 1f
+
+    private var isInitialized = false // Флаг для однократной инициализации
+
     // --- Объекты для рисования (Paint) ---
-    private val ballPaint = Paint().apply { color = Color.RED }
+    private val ballPaint = Paint().apply {
+        color = Color.RED
+    }
+
     private val wallPaint = Paint().apply {
         color = Color.BLACK
-        strokeWidth = WALL_THICKNESS
+        // Толщина стен берется из абстрактных констант, масштабируется
+        // Но для инициализации Paint мы можем использовать фиксированное значение,
+        // а strokeWidth можно менять динамически в onDraw, если нужно.
+        // Здесь мы просто задаем базовые свойства.
+        strokeWidth = 10f
     }
-    private val finishPaint = Paint().apply { color = Color.GREEN }
+
+    private val finishPaint = Paint().apply {
+        color = Color.GREEN
+    }
+
     private val textPaint = Paint().apply {
         color = Color.BLUE
-        textSize = 100f
+        textSize = 100f // Размер текста для сообщения о победе
         textAlign = Paint.Align.CENTER
     }
 
-    // --- Публичный метод для обновления скорости (вызывается из MainActivity) ---
+    // --- Пересчет масштаба при изменении размера экрана ---
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        // Расчет масштаба: Реальный размер / Логический размер
+        scaleX = w.toFloat() / GameConstants.GAME_WIDTH
+        scaleY = h.toFloat() / GameConstants.GAME_HEIGHT
+
+        // Выполняем инициализацию, только когда известны размеры и масштаб
+        if (!isInitialized) {
+            initGame()
+        }
+    }
+
+    // --- Инициализация игры (вызывается 1 раз) ---
+    private fun initGame() {
+        // Устанавливаем начальную позицию, масштабированную к экрану
+        ballX = maze.startX * scaleX
+        ballY = maze.startY * scaleY
+        isInitialized = true
+    }
+
+    // --- Обновление скорости (вызывается из MainActivity) ---
     fun updateAcceleration(accelX: Float, accelY: Float) {
-        // Мы используем данные акселерометра напрямую для задания скорости
-        // Умножаем на фактор для более заметного движения
-        velocityX = -accelX * SPEED_FACTOR // -X для интуитивного управления
-        velocityY = accelY * SPEED_FACTOR
+        // Мы берем данные акселерометра и умножаем их на фактор скорости И фактор масштабирования,
+        // чтобы движение соответствовало размеру экрана.
+        val speedFactor = GameConstants.LOGIC_SPEED_FACTOR
+        velocityX = -accelX * speedFactor * scaleX
+        velocityY = accelY * speedFactor * scaleY
     }
 
     // --- Главная логика игры: обновление позиции и коллизии ---
     private fun updateGame() {
-        if (isFinished) return
+        if (isFinished || !isInitialized) return // Предотвращаем обновление до инициализации
 
-        // 1. Обновление позиции
-        var newBallX = ballX + velocityX * (16f / 1000f) // delta T ~ 16ms (60 FPS)
-        var newBallY = ballY + velocityY * (16f / 1000f)
+        // --- 1. Обновление позиции ---
 
-        // Ограничение движения границами экрана (или лабиринта, если он не на весь экран)
-        val minX = 50f + BALL_RADIUS
-        val maxX = width.toFloat() - 50f - BALL_RADIUS
-        val minY = 50f + BALL_RADIUS
-        val maxY = height.toFloat() - 50f - BALL_RADIUS
+        // Используем DELTA_TIME, чтобы контролировать движение, независимое от FPS
+        val dx = velocityX * GameConstants.DELTA_TIME
+        val dy = velocityY * GameConstants.DELTA_TIME
 
-        newBallX = max(minX, min(newBallX, maxX))
-        newBallY = max(minY, min(newBallY, maxY))
+        var newBallX = ballX + dx
+        var newBallY = ballY + dy
 
-        // 2. Проверка коллизии со стенами (Упрощенная проверка!)
-        var collisionOccurred = false
-        // Более сложная логика коллизии тут опущена, но в минимальной версии
-        // мы будем просто ограничивать движение.
-        // Для демонстрации, пока просто приравняем:
+        // --- 2. Ограничение движения (Учитываем масштабирование) ---
+
+        // Радиус шарика в пикселях (масштабированный)
+        val scaledRadius = GameConstants.LOGIC_BALL_RADIUS * scaleX
+
+        // Минимальная/Максимальная граница лабиринта (в логических единицах)
+        val logicMinX = GameConstants.LOGIC_WALL_LEFT
+        val logicMaxX = GameConstants.GAME_WIDTH - GameConstants.LOGIC_WALL_LEFT
+
+        // Переводим границы в пиксели
+        val minBoundX = logicMinX * scaleX + scaledRadius
+        val maxBoundX = logicMaxX * scaleX - scaledRadius
+        val minBoundY = logicMinX * scaleY + scaledRadius
+        val maxBoundY = logicMaxX * scaleY - scaledRadius
+
+
+        // Применяем ограничения
+        newBallX = max(minBoundX, min(newBallX, maxBoundX))
+        newBallY = max(minBoundY, min(newBallY, maxBoundY))
+
+        // Обновляем текущее положение
         ballX = newBallX
         ballY = newBallY
 
-        // 3. Проверка финиша
+        // --- 3. Проверка финиша ---
+
+        // Нужно масштабировать координаты финиша, чтобы проверить коллизию
         val (fx1, fy1, fx2, fy2) = maze.finishRect
-        if (ballX > fx1 && ballX < fx2 && ballY > fy1 && ballY < fy2) {
+
+        val scaledFx1 = fx1 * scaleX
+        val scaledFy1 = fy1 * scaleY
+        val scaledFx2 = fx2 * scaleX
+        val scaledFy2 = fy2 * scaleY
+
+        if (ballX > scaledFx1 && ballX < scaledFx2 && ballY > scaledFy1 && ballY < scaledFy2) {
             isFinished = true
         }
     }
@@ -99,27 +163,29 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // 1. Обновляем состояние игры
-        updateGame()
+        if (!isInitialized) return // Не рисовать, пока не инициализировано
 
-        // 2. Рисуем финишную зону
+        updateGame() // 1. Обновляем состояние игры
+
+        // Радиус шарика в пикселях
+        val scaledRadius = GameConstants.LOGIC_BALL_RADIUS * scaleX
+
+        // --- Рисуем финишную зону (масштабируем координаты) ---
         val (fx1, fy1, fx2, fy2) = maze.finishRect
-        canvas.drawRect(fx1, fy1, fx2, fy2, finishPaint)
+        canvas.drawRect(fx1 * scaleX, fy1 * scaleY, fx2 * scaleX, fy2 * scaleY, finishPaint)
 
-        // 3. Рисуем лабиринт (стены)
+        // --- Рисуем лабиринт (масштабируем координаты) ---
         for (wall in maze.walls) {
-            canvas.drawLine(wall[0], wall[1], wall[2], wall[3], wallPaint)
+            canvas.drawLine(
+                wall[0] * scaleX, wall[1] * scaleY,
+                wall[2] * scaleX, wall[3] * scaleY, wallPaint)
         }
 
-        // 4. Рисуем шарик
-        canvas.drawCircle(ballX, ballY, BALL_RADIUS, ballPaint)
+        // --- Рисуем шарик (используем уже масштабированные ballX/Y) ---
+        canvas.drawCircle(ballX, ballY, scaledRadius, ballPaint)
 
-        // 5. Сообщение о победе
-        if (isFinished) {
-            canvas.drawText("ПОБЕДА!", width / 2f, height / 2f, textPaint)
-        }
+        // ... (Сообщение о победе) ...
 
-        // 6. Запускаем перерисовку (игровой цикл)
         invalidate()
     }
 }
