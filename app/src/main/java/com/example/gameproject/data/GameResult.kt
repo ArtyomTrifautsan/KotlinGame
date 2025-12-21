@@ -9,6 +9,6 @@ data class GameResult(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val level: Int = 1,
-    val completionTime: Long, // время в секундах
+    val completionTime: Long, // время в миллисекундах
     val date: Date = Date()
 )

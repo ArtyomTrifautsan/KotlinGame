@@ -42,6 +42,24 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
     private var velocityY = 0f
     private var isFinished = false
 
+    // Добавь эти переменные
+    private var startTime = 0L
+    private var elapsedTime = 0L
+    private var isTimerRunning = false
+
+    // Добавь эти методы
+    fun startTimer() {
+        startTime = System.currentTimeMillis()
+        isTimerRunning = true
+    }
+    fun stopTimer(): Long {
+        if (isTimerRunning) {
+            elapsedTime = System.currentTimeMillis() - startTime
+            isTimerRunning = false
+        }
+        return elapsedTime
+    }
+
     // --- Объекты для рисования (Paint) ---
     private val ballPaint = Paint().apply { color = Color.RED }
     private val wallPaint = Paint().apply {
@@ -90,8 +108,22 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
 
         // 3. Проверка финиша
         val (fx1, fy1, fx2, fy2) = maze.finishRect
-        if (ballX > fx1 && ballX < fx2 && ballY > fy1 && ballY < fy2) {
+        if (ballX > fx1 && ballX < fx2 && ballY > fy1 && ballY < fy2 && !isFinished) {
             isFinished = true
+            val time = stopTimer() // получаем время
+        }
+    }
+
+
+    private fun formatTime(millis: Long): String {
+        val seconds = millis / 1000
+        return String.format("%02d:%03d", seconds%1000, millis%1000)
+    }
+    fun getCurrentTime(): Long {
+        return if (isTimerRunning) {
+            System.currentTimeMillis() - startTime
+        } else {
+            elapsedTime
         }
     }
 
@@ -101,6 +133,18 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
 
         // 1. Обновляем состояние игры
         updateGame()
+
+        val currentTime = getCurrentTime()
+        val timeText = "Time: ${formatTime(currentTime)}"
+
+        // Создаем Paint для текста таймера
+        val timerPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 30f
+            textAlign = Paint.Align.RIGHT
+        }
+
+        canvas.drawText(timeText, width.toFloat()-20f, 100f, timerPaint)
 
         // 2. Рисуем финишную зону
         val (fx1, fy1, fx2, fy2) = maze.finishRect

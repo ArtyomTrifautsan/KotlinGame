@@ -18,7 +18,7 @@ class GameFragment : Fragment(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
-    private lateinit var gameView: GameView
+    private var gameView: GameView? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,6 +43,8 @@ class GameFragment : Fragment(), SensorEventListener {
                 replace(R.id.fragment_container, MenuFragment())
             }
         }
+        gameView = view.findViewById(R.id.game_view)
+        gameView?.startTimer() // запускаем таймер
     }
 
     override fun onResume() {
@@ -55,13 +57,14 @@ class GameFragment : Fragment(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
+        gameView?.stopTimer() // останавливаем при паузе
     }
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
             val accelX = event.values[0]
             val accelY = event.values[1]
-            gameView.updateAcceleration(accelX, accelY)
+            gameView!!.updateAcceleration(accelX, accelY)
         }
     }
 
