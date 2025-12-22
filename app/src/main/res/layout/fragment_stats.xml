@@ -23,6 +23,15 @@
         android:layout_marginBottom="20dp"/>
 
     <Button
+        android:id="@+id/btn_reset_the_stats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Сброс"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="16dp"/>
+
+    <Button
         android:id="@+id/btn_back_to_menu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

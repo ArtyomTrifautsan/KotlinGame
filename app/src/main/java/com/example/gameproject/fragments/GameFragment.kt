@@ -11,8 +11,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
 import com.example.gameproject.GameView
+
 import com.example.gameproject.R
+import com.example.gameproject.data.AppDatabase
+import com.example.gameproject.data.GameResult
+import kotlinx.coroutines.launch
 
 class GameFragment : Fragment(), SensorEventListener {
 
@@ -28,10 +33,9 @@ class GameFragment : Fragment(), SensorEventListener {
         return inflater.inflate(R.layout.fragment_game, container, false)
     }
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        gameView = view.findViewById(R.id.game_view)
 
         // Инициализация сенсоров
         sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -45,6 +49,20 @@ class GameFragment : Fragment(), SensorEventListener {
         }
         gameView = view.findViewById(R.id.game_view)
         gameView?.startTimer() // запускаем таймер
+
+        gameView?.onFinishCallback = { time ->
+            lifecycleScope.launch {
+                AppDatabase.getDatabase(requireContext())
+                    .gameResultDao()
+                    .insertResult(
+                        GameResult(
+                            level = 1,
+                            completionTime = time,
+                            date = System.currentTimeMillis() // Используем текущее время
+                        )
+                    )
+            }
+        }
     }
 
     override fun onResume() {

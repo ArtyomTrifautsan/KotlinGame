@@ -81,6 +81,8 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
         velocityY = accelY * SPEED_FACTOR
     }
 
+    var onFinishCallback: ((Long) -> Unit)? = null
+
     // --- Главная логика игры: обновление позиции и коллизии ---
     private fun updateGame() {
         if (isFinished) return
@@ -110,14 +112,16 @@ class GameView(context: Context, attrs: AttributeSet? = null) : View(context, at
         val (fx1, fy1, fx2, fy2) = maze.finishRect
         if (ballX > fx1 && ballX < fx2 && ballY > fy1 && ballY < fy2 && !isFinished) {
             isFinished = true
-            val time = stopTimer() // получаем время
+            val time = stopTimer()
+            onFinishCallback?.invoke(time)
         }
     }
 
 
     private fun formatTime(millis: Long): String {
         val seconds = millis / 1000
-        return String.format("%02d:%03d", seconds%1000, millis%1000)
+        val remainingMillis = millis % 1000
+        return String.format("%d.%03d сек", seconds, remainingMillis)
     }
     fun getCurrentTime(): Long {
         return if (isTimerRunning) {

@@ -1,3 +1,4 @@
+// StatsFragment.kt
 package com.example.gameproject.fragments
 
 import android.os.Bundle
@@ -6,8 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
 import com.example.gameproject.R
-import kotlin.random.Random
+import com.example.gameproject.data.AppDatabase
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class StatsFragment : Fragment() {
 
@@ -22,28 +28,38 @@ class StatsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Генерируем случайные данные для демонстрации
-        val statsList = mutableListOf<String>()
-        for (i in 1..10) {
-            val time = Random.nextDouble(30.0, 300.0) // случайное время от 30 до 300 секунд
-            val minutes = (time / 60).toInt()
-            val seconds = (time % 60).toInt()
-            statsList.add("Игра #$i: $minutes мин $seconds сек")
-        }
-
-        // Настраиваем ListView
+        val db = AppDatabase.getDatabase(requireContext())
         val listView = view.findViewById<android.widget.ListView>(R.id.lv_stats)
-        val adapter = android.widget.ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_list_item_1,
-            statsList
+        val adapter = android.widget.ArrayAdapter<String>(
+            requireContext(), android.R.layout.simple_list_item_1
         )
         listView.adapter = adapter
 
-        // Кнопка возврата
+        lifecycleScope.launch {
+            db.gameResultDao().getAllResults().collect { results ->
+                adapter.clear()
+                results.forEachIndexed { index, result ->
+                    val seconds = result.completionTime / 1000
+                    val millis = result.completionTime % 1000
+
+                    // Используем Long timestamp
+                    val date = SimpleDateFormat("dd.MM", Locale.getDefault())
+                        .format(Date(result.date)) // Конвертируем Long в Date
+
+                    adapter.add("Игра ${index + 1}: ${seconds}.${millis}сек ($date)")
+                }
+            }
+        }
+
         view.findViewById<View>(R.id.btn_back_to_menu).setOnClickListener {
             parentFragmentManager.commit {
                 replace(R.id.fragment_container, MenuFragment())
+            }
+        }
+
+        view.findViewById<View>(R.id.btn_reset_the_stats).setOnClickListener {
+            lifecycleScope.launch {
+                db.gameResultDao().deleteAll()
             }
         }
     }
