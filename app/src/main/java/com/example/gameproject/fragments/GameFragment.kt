@@ -37,18 +37,18 @@ class GameFragment : Fragment(), SensorEventListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Инициализация сенсоров
+        // initialize sensors
         sensorManager = requireActivity().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        // Кнопка возврата в меню
+        // Button to return on Menu
         view.findViewById<View>(R.id.btn_back_from_game).setOnClickListener {
             parentFragmentManager.commit {
                 replace(R.id.fragment_container, MenuFragment())
             }
         }
         gameView = view.findViewById(R.id.game_view)
-        gameView?.startTimer() // запускаем таймер
+        gameView?.startTimer() // start Timer
 
         gameView?.onFinishCallback = { time ->
             lifecycleScope.launch {
@@ -58,7 +58,7 @@ class GameFragment : Fragment(), SensorEventListener {
                         GameResult(
                             level = 1,
                             completionTime = time,
-                            date = System.currentTimeMillis() // Используем текущее время
+                            date = System.currentTimeMillis()
                         )
                     )
             }
@@ -75,7 +75,7 @@ class GameFragment : Fragment(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
-        gameView?.stopTimer() // останавливаем при паузе
+        gameView?.stopTimer() // stop the time
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -87,6 +87,6 @@ class GameFragment : Fragment(), SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Не используется
+        null
     }
 }

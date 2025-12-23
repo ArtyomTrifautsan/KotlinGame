@@ -14,16 +14,15 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
+            return INSTANCE ?: synchronized(this) {             // synchronized - only one thread, other took yourself token on queue
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "game_db"
                 )
-                    .allowMainThreadQueries()
                     .build()
                 INSTANCE = instance
-                instance
+                instance                    // return instance
             }
         }
     }

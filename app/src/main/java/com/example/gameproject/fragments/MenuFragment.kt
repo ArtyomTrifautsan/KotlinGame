@@ -24,7 +24,7 @@ class MenuFragment : Fragment() {
         view.findViewById<View>(R.id.btn_start).setOnClickListener {
             parentFragmentManager.commit {
                 replace(R.id.fragment_container, GameFragment())
-                addToBackStack(null)
+                addToBackStack(null)        // for backing
             }
         }
 

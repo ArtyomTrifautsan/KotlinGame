@@ -14,7 +14,7 @@ data class GameResult(
     val id: Int = 0,
     val level: Int = 1,
     val completionTime: Long,
-    val date: Long = System.currentTimeMillis() // Измените на Long
+    val date: Long = System.currentTimeMillis()
 )
 
 @Dao

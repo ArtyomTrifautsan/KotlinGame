@@ -10,7 +10,6 @@ import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import com.example.gameproject.R
 import com.example.gameproject.data.AppDatabase
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,14 +36,13 @@ class StatsFragment : Fragment() {
 
         lifecycleScope.launch {
             db.gameResultDao().getAllResults().collect { results ->
-                adapter.clear()
+                adapter.clear()                 // clear before add new data
                 results.forEachIndexed { index, result ->
                     val seconds = result.completionTime / 1000
                     val millis = result.completionTime % 1000
 
-                    // Используем Long timestamp
                     val date = SimpleDateFormat("dd.MM", Locale.getDefault())
-                        .format(Date(result.date)) // Конвертируем Long в Date
+                        .format(Date(result.date))  // Convert from Long to Date
 
                     adapter.add("Игра ${index + 1}: ${seconds}.${millis}сек ($date)")
                 }
