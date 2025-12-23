@@ -10,7 +10,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun gameResultDao(): GameResultDao
 
     companion object {
-        @Volatile
+        @Volatile           // changes INSTANCE are visible to all threads
         private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
